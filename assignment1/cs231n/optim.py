@@ -44,8 +44,8 @@ def sgd(w, dw, config=None):
     # TODO: Implement the vanilla stochastic gradient descent update formula. #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
+    
+    w -= dw * config["learning_rate"]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

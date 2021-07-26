@@ -29,6 +29,7 @@ class TwoLayerNet(object):
         num_classes=10,
         weight_scale=1e-3,
         reg=0.0,
+        p=None
     ):
         """
         Initialize a new network.
@@ -40,9 +41,11 @@ class TwoLayerNet(object):
         - weight_scale: Scalar giving the standard deviation for random
           initialization of the weights.
         - reg: Scalar giving L2 regularization strength.
+        - p (my custom): keep probability of each neurons
         """
         self.params = {}
         self.reg = reg
+        self.p = p
 
         ############################################################################
         # TODO: Initialize the weights and biases of the two-layer net. Weights    #
@@ -55,7 +58,10 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        self.params['W1'] = np.random.randn(input_dim, hidden_dim) * weight_scale
+        self.params['b1'] = np.zeros(hidden_dim)
+        self.params['W2'] = np.random.randn(hidden_dim, num_classes) * weight_scale
+        self.params['b2'] = np.zeros(num_classes)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -88,7 +94,11 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        h1, cache_1 = affine_relu_forward(X, self.params['W1'], self.params['b1'])
+        if self.p:
+          do_mask = (np.random.rand(*h1.shape) < self.p) / self.p
+          h1 *= do_mask
+        scores, cache_2 = affine_forward(h1, self.params['W2'], self.params['b2'])
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -111,8 +121,23 @@ class TwoLayerNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        N = X.shape[0]        
+        W1 = self.params['W1']
+        b1 = self.params['b1']
+        W2 = self.params['W2']
+        b2 = self.params['b2']
 
-        pass
+        sm_loss, ds = softmax_loss(scores, y)
+        # bias는 reg loss에 포함안시켜야하네? 왜??
+        reg_loss = (0.5)*self.reg*(np.sum(W1*W1) + np.sum(W2*W2))
+        loss = sm_loss + reg_loss
+      
+        dh1, dw2, db2 = affine_backward(ds, cache_2)
+        dx, dw1, db1 = affine_relu_backward(dh1, cache_1)
+        grads['W1'] = dw1 + self.reg * W1 
+        grads['b1'] = db1  
+        grads['W2'] = dw2 + self.reg * W2 
+        grads['b2'] = db2 
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################

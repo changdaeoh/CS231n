@@ -28,7 +28,8 @@ def affine_forward(x, w, b):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x_flat = x.reshape(x.shape[0], -1)
+    out = x_flat.dot(w) + b
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -56,12 +57,15 @@ def affine_backward(dout, cache):
     """
     x, w, b = cache
     dx, dw, db = None, None, None
+    N = x.shape[0]
     ###########################################################################
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    dx, dw = dout.dot(w.T), x.reshape(N,-1).T.dot(dout)
+    dx = dx.reshape(*x.shape)
+    db = np.sum(dout, axis=0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -87,7 +91,7 @@ def relu_forward(x):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    out = np.maximum(x, np.zeros_like(x))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -114,8 +118,10 @@ def relu_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
-
+    dr = np.zeros_like(x)
+    dr[np.where(x > 0)] = 1
+    dx = dout*dr
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -135,7 +141,7 @@ def svm_loss(x, y):
 
     Returns a tuple of:
     - loss: Scalar giving the loss
-    - dx: Gradient of the loss with respect to x
+    - dx: Gradient of the loss with respect to x (shape : (N, C))
     """
     loss, dx = None, None
     ###########################################################################
@@ -144,8 +150,21 @@ def svm_loss(x, y):
     # cs231n/classifiers/linear_svm.py.                                       #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N = x.shape[0]
 
-    pass
+    # forward
+    zeros = np.zeros_like(x)
+    margins = np.maximum(zeros, x - x[list(range(N)), y].reshape(N,1) + 1)
+    margins[list(range(N)), y] = 0
+    loss = np.sum(margins)
+    loss /= N
+
+    # backward
+    dx = np.zeros_like(x)
+    dx[np.where(margins > 0)] = 1
+    cnts = np.sum(dx, axis = 1)
+    dx[list(range(N)), y] = (-1)*cnts
+    dx /= N
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -175,8 +194,21 @@ def softmax_loss(x, y):
     # cs231n/classifiers/softmax.py.                                          #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N = x.shape[0]
 
-    pass
+    # forward
+    e_s = np.exp(x - np.max(x, axis = 1).reshape(N,1))
+    probs = e_s / np.sum(e_s, axis = 1).reshape(N,1)
+    true_class_P = probs[list(range(N)), y]
+    loss = np.sum((-1) * np.log(true_class_P))
+    loss /= N
+
+    # backward
+    dsm = -1/true_class_P # (N, )
+    dsm_ds = (-1) * true_class_P.reshape(N, 1) * probs # (N, C)
+    dsm_ds[list(range(N)), y] = true_class_P * (1 - true_class_P) 
+    dx = dsm_ds * dsm.reshape(N, 1)
+    dx /= N
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

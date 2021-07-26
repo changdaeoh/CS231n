@@ -2,7 +2,7 @@ from builtins import range
 import numpy as np
 from random import shuffle
 from past.builtins import xrange
-
+import copy
 
 def svm_loss_naive(W, X, y, reg):
     """
@@ -28,21 +28,30 @@ def svm_loss_naive(W, X, y, reg):
     num_classes = W.shape[1]
     num_train = X.shape[0]
     loss = 0.0
+    threshold = np.zeros((num_train, num_classes)) # (N x C)
+
     for i in range(num_train):
         scores = X[i].dot(W)
         correct_class_score = scores[y[i]]
+        fired_cnts = 0
+
         for j in range(num_classes):
             if j == y[i]:
                 continue
             margin = scores[j] - correct_class_score + 1  # note delta = 1
             if margin > 0:
+                # loss 활성화 요소 개수 세기 (correct class에 대한 grad 계산을 위해)
+                fired_cnts += 1
+                # threshold 초과되는 위치 기억해놓기
+                threshold[i, j] = 1
                 loss += margin
+        threshold[i, y[i]] = (-1)*fired_cnts
 
-    # Right now the loss is a sum over all training examples, but we want it
-    # to be an average instead so we divide by num_train.
+    # Right now the loss is a 'sum' over all training examples, but we want it
+    # to be an 'average' instead so we divide by num_train.
     loss /= num_train
 
-    # Add regularization to the loss.
+    # Add regularization to the loss. (l2 reg)
     loss += reg * np.sum(W * W)
 
     #############################################################################
@@ -55,7 +64,9 @@ def svm_loss_naive(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    dW = X.T.dot(threshold) # (D x N) * (N x C)
+    dW /= num_train
+    dW += 2 * reg * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -70,6 +81,7 @@ def svm_loss_vectorized(W, X, y, reg):
     """
     loss = 0.0
     dW = np.zeros(W.shape)  # initialize the gradient as zero
+    num_train = X.shape[0]
 
     #############################################################################
     # TODO:                                                                     #
@@ -78,7 +90,18 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # class score matrix
+    S = X.dot(W)
+    # correct class score들 구하기
+    cc_score = S[list(range(num_train)), y] # (N,)
+    # 브로드캐스팅 (N x C) - (N, ) => (N x C)
+    margin = (S - cc_score.reshape(-1, 1)) + 1
+    thresh_margin = np.maximum(0, margin)
+    # 총 loss 구하고 N 빼주기(correct class col)
+    loss = np.sum(thresh_margin) - num_train
+
+    loss /= num_train
+    loss += reg*np.sum(W*W)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -93,8 +116,19 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    dS = copy.deepcopy(thresh_margin)
+    # fired된 부분 1로 채우기
+    dS[np.where(dS > 0)] = 1
+    # fired 개수세고 1씩 빼주기
+    fired_cnt = np.sum(dS, axis = -1) - 1
+    # grad of correct class element 채워주기
+    dS[list(range(num_train)), y] = (-1)*fired_cnt
 
+    dW = X.T.dot(dS)
+
+    dW /= num_train
+    dW += 2 * reg * W
+    
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     return loss, dW

@@ -76,8 +76,8 @@ class KNearestNeighbor(object):
                 # not use a loop over dimension, nor use np.linalg.norm().          #
                 #####################################################################
                 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-                pass
+                
+                dists[i, j] = np.sum((X[i,:] - X_train[j,:])**2)**(1/2)
 
                 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -101,7 +101,8 @@ class KNearestNeighbor(object):
             #######################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            # (3072,) - (5000, 3072) =broadcast> (5000, 3072) =sum> (5000,)
+            dists[i,:] = np.sqrt(np.sum((X[i,:] - self.X_train)**2, axis = 1))
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -130,8 +131,14 @@ class KNearestNeighbor(object):
         #       and two broadcast sums.                                         #
         #########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        
+        # marginal norm
+        Xte = np.sum(X**2,axis=1).reshape(num_test, 1)
+        Xtr = np.sum(self.X_train**2,axis=1)
 
-        pass
+        # l2 dist via MM & broadcast
+        matmul = np.dot(X, self.X_train.T)
+        dists = np.sqrt(Xte + Xtr -2*matmul)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -164,7 +171,8 @@ class KNearestNeighbor(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            top_k_indx = np.argsort(dists[i])[:k]
+            closest_y = self.y_train[top_k_indx]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             #########################################################################
@@ -176,7 +184,8 @@ class KNearestNeighbor(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            lab, cnts = np.unique(closest_y, return_counts=True)
+            y_pred[i] = lab[np.argmax(cnts)]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
