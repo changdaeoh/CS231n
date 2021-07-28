@@ -148,6 +148,7 @@ def softmax_loss(x, y):
     e_s = np.exp(x - np.max(x, axis = 1).reshape(N,1))
     probs = e_s / np.sum(e_s, axis = 1).reshape(N,1)
     true_class_P = probs[list(range(N)), y]
+    true_class_P = true_class_P + 1e-7  # prevent overflow
     loss = np.sum((-1) * np.log(true_class_P))
     loss /= N
     # backward
@@ -483,7 +484,9 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        mask = np.random.rand(*x.shape)
+        mask = mask < p
+        out = x * mask / p  # Calibrate activation magnitude of individual neurons
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -495,7 +498,7 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        out = x
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -525,7 +528,7 @@ def dropout_backward(dout, cache):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        dx = (dout * mask) / dropout_param["p"]
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -569,7 +572,24 @@ def conv_forward_naive(x, w, b, conv_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    pad, S = conv_param['pad'], conv_param['stride']
+
+    if conv_param['pad'] != 0:
+        x = np.pad(x, (pad, pad), 'constant', constant_values=0)[pad:N+pad, pad:C+pad, :, :]
+
+    H_out, W_out = 1 + int((H + 2 * pad - HH) / S), 1 + int((W + 2 * pad - WW) / S)
+
+    out = np.zeros((N, F, H_out, W_out))
+    for n in range(N):
+        for f in range(F):
+            for i in range(H_out):
+                for j in range(W_out):
+                    for c in range(C):
+                        out[n, f, i, j] += np.sum(x[n, c, i*S:i*S+HH, j*S:j*S+WW] * w[f, c, :, :])
+            out[n, f, :, :] += b[f]
+    '''NOTE, x is padded'''
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -596,8 +616,26 @@ def conv_backward_naive(dout, cache):
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    '''NOTE, x is padded'''
 
-    pass
+    x, w, b, conv_param = cache
+    pad, S = conv_param['pad'], conv_param['stride']
+    N, C, H, W = x.shape
+    H, W = H - 2*pad, W - 2*pad
+    _, F, H_out, W_out = dout.shape
+    _, _, HH, WW = w.shape
+
+    db = np.sum(np.sum(np.sum(dout, axis=3), axis=2), axis=0)
+    dw = np.zeros(w.shape)
+    dx = np.zeros(x.shape)
+    for n in range(N):
+        for f in range(F):
+            for i in range(H_out):
+                for j in range(W_out):
+                    dw[f] += x[n, :, i*S:i*S+HH, j*S:j*S+WW] * dout[n, f, i, j]
+                    dx[n, :, i*S:i*S+HH, j*S:j*S+WW] += dout[n, f, i, j] * w[f, :, :, :]
+
+    dx = dx[:, :, pad:H+pad, pad:W+pad]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -632,13 +670,31 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = x.shape
+    PH, PW, S = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    H_out = 1 + int((H - PH) / S)
+    W_out = 1 + int((W - PW) / S)
+
+    out = np.zeros((N, C, H_out, W_out))
+    mask = np.zeros((N, C, H, W))
+    for n in range(N):
+        for c in range(C):
+            for i in range(H_out):
+                for j in range(W_out):
+                    patch = x[n, c, i*S:i*S+PH, j*S:j*S+PW]
+                    value = np.max(patch)
+
+                    index = (patch == value)  # binary mask
+                    index = index + 0  # boolean to int
+
+                    out[n, c, i, j] = value
+                    mask[n, c, i*S:i*S+PH, j*S:j*S+PW] = index
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    cache = (x, pool_param)
+    cache = (x, mask, pool_param)
     return out, cache
 
 
@@ -658,7 +714,17 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x, mask, pool_param = cache
+    PH, PW, S = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    N, C, H_out, W_out = dout.shape
+
+    dx = np.zeros_like(x)
+    for n in range(N):
+        for c in range(C):
+            for i in range(H_out):
+                for j in range(W_out):
+                    # binary array * scalar
+                    dx[n, c, i*S:i*S+PH, j*S:j*S+PW] = mask[n, c, i*S:i*S+PH, j*S:j*S+PW] * dout[n, c, i, j]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -681,8 +747,8 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
         old information is discarded completely at every time step, while
         momentum=1 means that new information is never incorporated. The
         default of momentum=0.9 should work well in most situations.
-      - running_mean: Array of shape (D,) giving running mean of features
-      - running_var Array of shape (D,) giving running variance of features
+      - running_mean: Array of shape (C,) giving running mean of features
+      - running_var Array of shape (C,) giving running variance of features
 
     Returns a tuple of:
     - out: Output data, of shape (N, C, H, W)
@@ -699,7 +765,12 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = x.shape
+    # reshaping하기 전 transpose로 축을 조정해놔야 원하는대로 됨
+    x = x.transpose(0, 2, 3, 1).reshape(N * H * W, C)
+    out, cache = batchnorm_forward(x, gamma, beta, bn_param)
+    # 이후 차원 원상복구
+    out = out.reshape(N, H, W, C).transpose(0, 3, 1, 2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -732,7 +803,10 @@ def spatial_batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = dout.shape
+    dout = dout.transpose(0, 2, 3, 1).reshape(N * H * W, C)
+    dx, dgamma, dbeta = batchnorm_backward(dout, cache)
+    dx = dx.reshape(N, H, W, C).transpose(0, 3, 1, 2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -754,7 +828,7 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     - x: Input data of shape (N, C, H, W)
     - gamma: Scale parameter, of shape (1, C, 1, 1)
     - beta: Shift parameter, of shape (1, C, 1, 1)
-    - G: Integer mumber of groups to split into, should be a divisor of C
+    - G: Integer number of groups to split into, should be a divisor of C
     - gn_param: Dictionary with the following keys:
       - eps: Constant for numeric stability
 
@@ -773,7 +847,20 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    '''배낌'''
+    N = x.shape[0]
+
+    x_g = np.reshape(x, (N * G, -1))
+    x_mu = np.mean(x_g, axis=1).reshape(-1, 1)
+    x_var = np.var(x_g, axis=1).reshape(-1, 1)
+    x_var_inv = 1 / np.sqrt(x_var + eps)
+    # xmmu = x_g - x_mu
+    x_norm = (x_g - x_mu) * x_var_inv
+    x_norm = np.reshape(x_norm, x.shape)
+
+    out = gamma * x_norm + beta
+    cache = (x_norm, x_g - x_mu, x_var_inv, gamma)
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -802,7 +889,26 @@ def spatial_groupnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    '''배낌'''
+    x_norm, xmmu, var_inv, gamma = cache
+    C = dout.shape[1]
+
+    dbeta = np.sum(dout, axis=(0, 2, 3)).reshape((1, C, 1, 1))
+    dgamma = np.sum(dout * x_norm, axis=(0, 2, 3)).reshape((1, C, 1, 1))
+    dnorm = dout * gamma
+
+    dnorm = np.reshape(dnorm, xmmu.shape)
+    dxmu = dnorm * var_inv
+    dvar_inv = np.sum(dnorm * xmmu, axis=1, keepdims=True)
+
+    dvar = dvar_inv * -0.5 * var_inv ** 3
+    dx = dxmu
+
+    dxmu += dvar * 2 / (xmmu.shape[1]) * xmmu
+    dmu = -1 * np.sum(dxmu, axis=1, keepdims=True)
+
+    dx += 1 / (xmmu.shape[1]) * dmu
+    dx = np.reshape(dx, dout.shape)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

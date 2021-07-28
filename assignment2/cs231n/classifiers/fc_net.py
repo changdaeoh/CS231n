@@ -170,8 +170,8 @@ class FullyConnectedNet(object):
         # memory dictionary for forward pass
         m_f = {}
 
-        if self.normalization is None:
-            for i in range(self.num_layers):
+        for i in range(self.num_layers):
+            if self.normalization is None:
                 # input layer
                 if i == 0:
                     m_f['h' + str(i + 1)], m_f['cache' + str(i + 1)] = \
@@ -187,8 +187,7 @@ class FullyConnectedNet(object):
                     m_f['h' + str(i + 1)], m_f['cache' + str(i + 1)] = \
                         affine_relu_forward(m_f['h' + str(i)], self.params['W' + str(i + 1)], self.params['b' + str(i + 1)])
 
-        elif self.normalization == "batchnorm":
-            for i in range(self.num_layers):
+            elif self.normalization == "batchnorm":
                 # input layer
                 if i == 0:
                     m_f['h' + str(i + 1)], m_f['cache' + str(i + 1)] = \
@@ -208,8 +207,7 @@ class FullyConnectedNet(object):
                                                self.params['b' + str(i + 1)],
                                                self.params['gamma' + str(i + 1)], self.params['beta' + str(i + 1)],
                                                self.bn_params[i])
-        else:
-            for i in range(self.num_layers):
+            else:
                 # input layer
                 if i == 0:
                     m_f['h' + str(i + 1)], m_f['cache' + str(i + 1)] = \
@@ -229,6 +227,14 @@ class FullyConnectedNet(object):
                                                self.params['b' + str(i + 1)],
                                                self.params['gamma' + str(i + 1)], self.params['beta' + str(i + 1)],
                                                self.ln_params[i])
+
+            if self.use_dropout:
+                # if not final layer
+                if (i + 1) != self.num_layers:
+                    # overlapping h_i
+                    m_f['h' + str(i + 1)], m_f['cache_do_' + str(i + 1)] = \
+                        dropout_forward(m_f['h' + str(i + 1)], self.dropout_param)
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -267,8 +273,14 @@ class FullyConnectedNet(object):
         m_b = {}
 
         # 역전파 때는 루프를 역순으로 돌려야됨
-        if self.normalization is None:
-            for i in range(self.num_layers, 0, -1):  # n, n-1, ..., 1
+        for i in range(self.num_layers, 0, -1):  # n, n-1, ..., 1
+
+            if self.use_dropout:
+                # if not final layer
+                if i != self.num_layers:
+                    m_b['dh' + str(i)] = dropout_backward(m_b['dh' + str(i)], m_f['cache_do_' + str(i)])
+
+            if self.normalization is None:
                 # input layer
                 if i == 1:
                     dx, m_b['dw' + str(i)], m_b['db' + str(i)] = \
@@ -286,8 +298,7 @@ class FullyConnectedNet(object):
                 grads['W' + str(i)] = m_b['dw' + str(i)] + self.reg * self.params['W' + str(i)]
                 grads['b' + str(i)] = m_b['db' + str(i)]
 
-        elif self.normalization == "batchnorm":
-            for i in range(self.num_layers,0,-1): # n, n-1, ..., 1
+            elif self.normalization == "batchnorm":
                 # input layer
                 if i == 1 :
                     dx, m_b['dw'+str(i)], m_b['db'+str(i)], m_b['dgamma'+str(i)], m_b['dbeta'+str(i)] = \
@@ -308,8 +319,7 @@ class FullyConnectedNet(object):
                     grads['gamma' + str(i)] = m_b['dgamma' + str(i)]
                     grads['beta' + str(i)] = m_b['dbeta' + str(i)]
 
-        else:
-            for i in range(self.num_layers,0,-1): # n, n-1, ..., 1
+            else:
                 # input layer
                 if i == 1 :
                     dx, m_b['dw'+str(i)], m_b['db'+str(i)], m_b['dgamma'+str(i)], m_b['dbeta'+str(i)] = \
