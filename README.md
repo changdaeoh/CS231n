@@ -10,8 +10,8 @@
 ### A2
 * Q1: MLP  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment2/FullyConnectedNets.ipynb)
 * Q2: BatchNorm  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment2/BatchNormalization.ipynb)
-* Q3: Dropout [(Done)](https://github.com/changdaeoh/CS231n/blob/main/assignment2/Dropout.ipynb)
-* Q4: CNN [(Done)](https://github.com/changdaeoh/CS231n/blob/main/assignment2/ConvolutionalNetworks.ipynb)
+* Q3: Dropout [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment2/Dropout.ipynb)
+* Q4: CNN [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment2/ConvolutionalNetworks.ipynb)
 * Q5: pytorch/tensorflow on cifar-10
 
 ### A3
