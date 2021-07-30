@@ -12,7 +12,7 @@
 * Q2: BatchNorm  [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment2/BatchNormalization.ipynb)
 * Q3: Dropout [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment2/Dropout.ipynb)
 * Q4: CNN [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment2/ConvolutionalNetworks.ipynb)
-* Q5: pytorch/tensorflow on cifar-10
+* Q5: pytorch/tensorflow on cifar-10 [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment2/PyTorch.ipynb)
 
 ### A3
 * 
