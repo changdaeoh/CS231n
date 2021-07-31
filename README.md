@@ -15,7 +15,7 @@
 * Q5: pytorch/tensorflow on cifar-10 [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment2/PyTorch.ipynb)
 
 ### A3
-* Q1: Image Captioning with Vanilla RNNs [_(In progress)_](https://github.com/changdaeoh/CS231n/blob/main/assignment3/RNN_Captioning.ipynb)
+* Q1: Image Captioning with Vanilla RNNs [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment3/RNN_Captioning.ipynb)
 * Q2: Image Captioning with Transformers
 * Q3: Network Visualization: Saliency Maps, Class Visualization, and Fooling Images
 * Q4: Generative Adversarial Networks

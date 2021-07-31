@@ -244,7 +244,8 @@ def word_embedding_forward(x, W):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    out = W[x[:,:]]
+    cache = x, W, out
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -278,7 +279,12 @@ def word_embedding_backward(dout, cache):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x, W, out = cache
+    dW = np.zeros_like(W)
+    
+    for i in range(x.shape[0]):
+        idx = x[i,:]  # (T,)
+        np.add.at(dW, idx, dout[i,:,:])  # dW의 각 토큰들 위치에 upstream grad 누적
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################

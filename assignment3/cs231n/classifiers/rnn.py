@@ -148,7 +148,19 @@ class CaptioningRNN:
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # ----------------------------------------------------- forward
+        h0 = features.dot(W_proj) + b_proj  # (N, H) 
+        embedded_w, emb_cache = word_embedding_forward(captions_in, W_embed)  # (N, T, W)
+        h_tot, rnn_cache = rnn_forward(embedded_w, h0, Wx, Wh, b)  # (N, T, H)
+        scores, aff_cache = temporal_affine_forward(h_tot, W_vocab, b_vocab)  # (N, T, V)
+        loss, dout = temporal_softmax_loss(scores, captions_out, mask) 
+
+        # ----------------------------------------------------- backward
+        dh, grads['W_vocab'], grads['b_vocab'] = temporal_affine_backward(dout, aff_cache)
+        dx, dh0, grads['Wx'], grads['Wh'], grads['b'] = rnn_backward(dh, rnn_cache)
+        grads['W_embed'] = word_embedding_backward(dx, emb_cache)
+        grads['W_proj'] = features.T.dot(dh0)
+        grads['b_proj'] = dh0.sum(axis=0)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -216,7 +228,21 @@ class CaptioningRNN:
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # init
+        h_t = features.dot(W_proj) + b_proj
+        
+        # iter over timestep (caution: minibatch data flow!!)
+        for t in range(max_length):
+          if t == 0:
+            embedded_w = W_embed[[self._start]*N,:]
+          else:
+            embedded_w = W_embed[word_idx,:]
+          h_t, _ = rnn_step_forward(embedded_w, h_t, Wx, Wh, b)  
+          scores = h_t.dot(W_vocab) + b_vocab  # (N, V)
+
+          # exit flow
+          word_idx = np.argmax(scores, axis=1)  # (N, )
+          captions[:,t] = word_idx
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
