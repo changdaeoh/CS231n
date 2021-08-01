@@ -16,11 +16,10 @@
 
 ### A3
 * Q1: Image Captioning with Vanilla RNNs [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment3/RNN_Captioning.ipynb)
-* Q2: Image Captioning with Transformers
+* Q2: Image Captioning with Transformers [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment3/Transformer_Captioning.ipynb)
 * Q3: Network Visualization: Saliency Maps, Class Visualization, and Fooling Images
 * Q4: Generative Adversarial Networks
 * Q5: Self-Supervised Learning for Image Classification
-* Extra Credit: Image Captioning with LSTMs
 
 <br/>
 

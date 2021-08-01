@@ -38,7 +38,12 @@ class PositionalEncoding(nn.Module):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        len_idx = torch.arange(0, max_len)
+        dim_idx = torch.arange(0, embed_dim, step=2)  # 짝수면 그대로, 홀수면 -1해서 고려되므로
+        # (1,L) * (D,) => (L,D)
+        idx_matrix = len_idx.unsqueeze(1) * 1e4**(-dim_idx/embed_dim)
+        pe[:, :, 0::2] = torch.sin(idx_matrix)
+        pe[:, :, 1::2] = torch.cos(idx_matrix)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -70,7 +75,8 @@ class PositionalEncoding(nn.Module):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        output = x + self.pe[:,:S,:]  # input되는 시퀀스길이 까지만 더해줌 
+        output = self.dropout(output)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -126,7 +132,8 @@ class MultiHeadAttention(nn.Module):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        self.num_heads = num_heads
+        self.dropout = nn.Dropout(dropout)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -157,7 +164,7 @@ class MultiHeadAttention(nn.Module):
         N, S, D = query.shape
         N, T, D = value.shape
         # Create a placeholder, to be overwritten by your code below.
-        output = torch.empty((N, T, D))
+        output = torch.empty((N, S, D))
         ############################################################################
         # TODO: Implement multiheaded attention using the equations given in       #
         # Transformer_Captioning.ipynb.                                            #
@@ -174,12 +181,24 @@ class MultiHeadAttention(nn.Module):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        H = self.num_heads
+        Q_mh = self.query(query).view(N, S, H, D//H).permute(0, 2, 1, 3)
+        K_mh = self.key(key).view(N, T, H, D//H).permute(0, 2, 3, 1)  # transposed  K
+        V_mh = self.value(value).view(N, T, H, D//H).permute(0, 2, 1, 3)
+
+        QK = Q_mh.matmul(K_mh) / torch.sqrt(torch.Tensor([D / H]))  # (N,H,S,T)
+        if attn_mask is not None:
+          QK = QK.masked_fill(attn_mask==0, -1e9)
+        QK_sm = F.softmax(QK, dim = -1)  # sm for ( ., ., S, "T")
+        QK_sm = self.dropout(QK_sm)
+        # 근데 왜 드랍아웃을 여기에 해야 답이맞냐??
+        # QKV에 먹여야되는것처럼 설명 적혀져있드만
+
+        QKV = QK_sm.matmul(V_mh)  # (N,H,S,T) * (N,H,T,D//H) => (N,H,S,D//H)
+        output = self.proj(QKV.permute(0,2,1,3).reshape(N,-1,D))
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
         return output
-
-
