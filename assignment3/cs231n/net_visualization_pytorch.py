@@ -34,7 +34,12 @@ def compute_saliency_maps(X, y, model):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    score = model(X)
+    cc_score = torch.gather(score, 1, y.view(-1, 1)).squeeze()  # (N, )
+    loss = cc_score.sum()
+    loss.backward()
+
+    saliency, idx = torch.max(torch.abs(X.grad), dim=1)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -76,9 +81,28 @@ def make_fooling_image(X, target_y, model):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    i = 0
+    while True:
+        i += 1
+        X_fooling.retain_grad()
 
-    # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        score = model(X_fooling)  # (1, N_CLASS)
+        cc_score = score[0, target_y]
+        cc_score.backward()
+
+        g = X_fooling.grad
+        g_norm = torch.sum(g**2).sqrt()
+        dX = learning_rate * g / g_norm
+        X_fooling = X_fooling + dX
+
+        print(f'iter{i}: correct class score = {cc_score}')
+        if torch.argmax(score) == target_y:
+            break
+        if i > 100:
+            print(f'# of iter exceed 100\nalgorithm fail...')
+            break
+
+        # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
     #                             END OF YOUR CODE                               #
     ##############################################################################
@@ -94,7 +118,18 @@ def class_visualization_update_step(img, model, target_y, l2_reg, learning_rate)
     ########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # img : (1, 3, 224, 224)
+    score = model(img)  # (1, N_CLS)
+    cc_score = score[0, target_y]
+    l2_penalty = l2_reg*torch.sum(img**2).sqrt()
+    objective = cc_score - l2_penalty
+    objective.backward()
+
+    grad = img.grad
+    img.data = img.data + learning_rate*grad
+
+    # 업데이트 후에는 img에 대한 grad를 0으로 리셋하는거 잊지말기. 결과에 큰영향.
+    img.grad.data.zero_()
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ########################################################################
