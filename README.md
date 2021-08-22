@@ -19,7 +19,7 @@
 * Q2: Image Captioning with Transformers [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment3/Transformer_Captioning.ipynb)
 * Q3: Network Visualization: Saliency Maps, Class Visualization, and Fooling Images [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment3/Network_Visualization.ipynb)
 * Q4: Generative Adversarial Networks [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment3/Generative_Adversarial_Networks.ipynb)
-* Q5: Self-Supervised Learning for Image Classification
+* Q5: Self-Supervised Learning for Image Classification [_(Done)_](https://github.com/changdaeoh/CS231n/blob/main/assignment3/Self_Supervised_Learning.ipynb)
 
 <br/>
 
